@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { Ragdoll, STEP } from './ragdoll.js';
 import { SkillTracker } from './skills.js';
-import { Gymnast, DEFAULT_LOOK } from './character.js';
+import { Gymnast } from './character.js';
+import { CHARACTERS, FIRST_CHARACTER, feetInches } from './characters.js';
 import { buildStage } from './stage.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
@@ -15,8 +16,19 @@ function load() {
 function save() {
   try { localStorage.setItem(STORE, JSON.stringify(prefs)); } catch { /* private mode etc. */ }
 }
-const prefs = { gfx: 'auto', mode: 'spring', look: { ...DEFAULT_LOOK }, best: { spring: 0, gym: 0 }, muted: false, seenHelp: false, ...load() };
-prefs.look = { ...DEFAULT_LOOK, ...prefs.look };
+const prefs = { gfx: 'auto', mode: 'spring', character: FIRST_CHARACTER, looks: {}, best: {}, muted: false, seenHelp: false, ...load() };
+// Older saves stored a full single look (not just the changes), which would
+// pin the old uniform; drop it and keep only the best scores.
+delete prefs.look;
+for (const m of ['spring', 'gym']) {
+  if (typeof prefs.best[m] === 'number') { prefs.best[`${FIRST_CHARACTER}:${m}`] = prefs.best[m]; delete prefs.best[m]; }
+}
+if (!CHARACTERS[prefs.character]) prefs.character = FIRST_CHARACTER;
+
+// The current character's look: their preset plus any saved customisation.
+const look = () => ({ ...CHARACTERS[prefs.character].look, ...prefs.looks[prefs.character] });
+const charName = () => CHARACTERS[prefs.character].name;
+const bestKey = () => `${prefs.character}:${prefs.mode}`;
 
 // ---------- renderer / scene ----------
 const canvas = document.getElementById('game');
@@ -46,8 +58,9 @@ function disposeScene() {
 }
 function buildWorld() {
   disposeScene();
-  stage = buildStage(scene, prefs.look);
-  gymnast = new Gymnast(scene, prefs.look);
+  const L = look();
+  stage = buildStage(scene, L);
+  gymnast = new Gymnast(scene, L);
   if (tierNow) { stage.setShadowSize(tierNow.shadows || 512); stage.key.castShadow = tierNow.shadows > 0; }
 }
 buildWorld();
@@ -100,7 +113,7 @@ let flopped = false, flopAt = 0;
 let lastPop = -1, lastBlock = -1, lastLand = -1;
 
 function newRun() {
-  ragdoll = new Ragdoll({ springFloor: prefs.mode === 'spring' });
+  ragdoll = new Ragdoll({ springFloor: prefs.mode === 'spring', scale: look().scale ?? 1 });
   tracker = new SkillTracker(onEvent);
   tracker.reset(ragdoll);
   gymnast.braids.reset();
@@ -119,7 +132,7 @@ function setText(el, v) {
 }
 function updateHud() {
   setText(ui.score, String((tracker?.score ?? 0) + (tracker?.comboPoints ?? 0)));
-  setText(ui.best, String(prefs.best[prefs.mode] || 0));
+  setText(ui.best, String(prefs.best[bestKey()] || 0));
   setText(ui.dist, `${(tracker?.distance ?? 0).toFixed(1)}m`);
 }
 
@@ -151,10 +164,10 @@ function onEvent(type, d) {
     flopAt = performance.now();
     sfx.flop();
     input.rumble(1, 350);
-    const best = prefs.best[prefs.mode] || 0;
+    const best = prefs.best[bestKey()] || 0;
     const isBest = d.score > best;
-    if (isBest) { prefs.best[prefs.mode] = d.score; save(); }
-    $('flopWhy').textContent = PART_NAMES[d.part] || 'Wipeout!';
+    if (isBest) { prefs.best[bestKey()] = d.score; save(); }
+    $('flopWhy').textContent = `${charName()} — ${PART_NAMES[d.part] || 'Wipeout!'}`;
     $('runScore').textContent = d.score;
     $('runSkills').textContent = d.skills;
     $('runDist').textContent = `${d.distance.toFixed(1)}m`;
@@ -212,22 +225,67 @@ addEventListener('pointerdown', unlock);
 addEventListener('keydown', unlock);
 
 const LOOK_FIELDS = { optSkin: 'skin', optHair: 'hair', optHighlight: 'highlight', optUniform: 'uniform', optTrim: 'trim', optBoots: 'boots' };
+const LOOK_SELECTS = { optHairStyle: 'hairStyle', optUniformStyle: 'uniformStyle', optShoes: 'shoes' };
+const LOOK_TOGGLES = { optBow: 'bow', optPoms: 'poms', optBraces: 'braces' };
+const setLook = (k, v) => { prefs.looks[prefs.character] = { ...prefs.looks[prefs.character], [k]: v }; lookChanged(); };
+
+function syncCharacter() {
+  for (const b of document.querySelectorAll('[data-char]')) b.setAttribute('aria-pressed', String(b.dataset.char === prefs.character));
+  $('charName').textContent = charName();
+  const L = look();
+  $('btnChar').style.setProperty('--c-uniform', L.uniform);
+  $('btnChar').style.setProperty('--c-trim', L.trim);
+  $('setTitle').textContent = `Customize ${charName()}`;
+}
 function syncSettings() {
+  const L = look();
   $('optMode').value = prefs.mode;
   $('optGfx').value = prefs.gfx;
-  $('optLetter').value = prefs.look.letter;
-  for (const [id, k] of Object.entries(LOOK_FIELDS)) $(id).value = prefs.look[k];
+  $('optLetter').value = L.letter;
+  $('optTeam').value = L.team;
+  for (const [id, k] of Object.entries(LOOK_FIELDS)) $(id).value = L[k];
+  for (const [id, k] of Object.entries(LOOK_SELECTS)) $(id).value = L[k];
+  for (const [id, k] of Object.entries(LOOK_TOGGLES)) $(id).checked = !!L[k];
+  $('optHeight').value = L.scale ?? 1;
+  $('heightLabel').textContent = feetInches(L.scale ?? 1);
+  syncCharacter();
 }
 let rebuildTimer = 0;
 function lookChanged() {
   clearTimeout(rebuildTimer);
   rebuildTimer = setTimeout(() => { save(); buildWorld(); newRun(); }, 150);
 }
+function pickCharacter(id) {
+  if (!CHARACTERS[id] || id === prefs.character) return;
+  prefs.character = id;
+  save();
+  syncSettings();
+  buildWorld();
+  newRun();
+}
+for (const b of document.querySelectorAll('[data-char]')) b.addEventListener('click', () => pickCharacter(b.dataset.char));
+// Character cards show each cheerleader's colours.
+for (const card of document.querySelectorAll('[data-char]')) {
+  const L = { ...CHARACTERS[card.dataset.char].look };
+  card.style.setProperty('--c-uniform', L.uniform);
+  card.style.setProperty('--c-trim', L.trim);
+  card.style.setProperty('--c-skin', L.skin);
+  card.style.setProperty('--c-hair', L.hair);
+}
+$('btnChar').addEventListener('click', () => { syncSettings(); openPanel(ui.settings); });
 $('optMode').addEventListener('change', (e) => { prefs.mode = e.target.value; save(); newRun(); });
 $('optGfx').addEventListener('change', (e) => { prefs.gfx = e.target.value; save(); quality.setMode(prefs.gfx); });
-$('optLetter').addEventListener('input', (e) => { prefs.look.letter = e.target.value.toUpperCase(); lookChanged(); });
-for (const [id, k] of Object.entries(LOOK_FIELDS)) $(id).addEventListener('input', (e) => { prefs.look[k] = e.target.value; lookChanged(); });
-$('btnResetLook').addEventListener('click', () => { prefs.look = { ...DEFAULT_LOOK }; syncSettings(); lookChanged(); });
+$('optLetter').addEventListener('input', (e) => setLook('letter', e.target.value.toUpperCase()));
+$('optTeam').addEventListener('input', (e) => setLook('team', e.target.value.toUpperCase()));
+for (const [id, k] of Object.entries(LOOK_FIELDS)) $(id).addEventListener('input', (e) => setLook(k, e.target.value));
+for (const [id, k] of Object.entries(LOOK_SELECTS)) $(id).addEventListener('change', (e) => setLook(k, e.target.value));
+for (const [id, k] of Object.entries(LOOK_TOGGLES)) $(id).addEventListener('change', (e) => setLook(k, e.target.checked));
+$('optHeight').addEventListener('input', (e) => {
+  $('heightLabel').textContent = feetInches(+e.target.value);
+  setLook('scale', +e.target.value);
+});
+$('btnResetLook').addEventListener('click', () => { delete prefs.looks[prefs.character]; syncSettings(); lookChanged(); });
+syncCharacter();
 
 // ---------- FPS meter (F key or ?fps) ----------
 let fpsEl = null, fpsShown = 0;
@@ -352,4 +410,4 @@ if (CAPTURE) {
 }
 
 // Handy for debugging in the console.
-window.flipflop = { get ragdoll() { return ragdoll; }, get tracker() { return tracker; }, input, newRun, view, camera, quality, renderer };
+window.flipflop = { get ragdoll() { return ragdoll; }, get tracker() { return tracker; }, input, newRun, view, camera, quality, renderer, pickCharacter };

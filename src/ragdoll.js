@@ -43,6 +43,7 @@ export const DEFAULT_TUNING = {
   landK: 900,
   coreK: 320,
   blockSpin: 8.5,
+  scale: 1, // body size (1 = ~1.5 m tall). Physics scales so skills still work.
 };
 
 function area(s) {
@@ -57,6 +58,18 @@ export class Ragdoll {
   }
 
   reset(x = 0) {
+    // Dynamic similarity: lengths × s, masses × s³, time × √s. Everything
+    // the controller does is converted with these factors so a smaller
+    // gymnast tumbles the same way, just a little quicker.
+    const s = this.opts.scale;
+    this.k = {
+      len: s,
+      torque: s ** 4,
+      angVel: 1 / Math.sqrt(s),
+      vel: Math.sqrt(s),
+      angMom: s ** 4.5,
+      time: Math.sqrt(s),
+    };
     this.world = new World({ gravity: new Vec2(0, -10) });
     this.bodies = {};
     this.joints = {};
@@ -84,15 +97,15 @@ export class Ragdoll {
     for (const [name, def] of Object.entries(LAYOUT)) {
       const body = this.world.createBody({
         type: 'dynamic',
-        position: new Vec2(x + def.origin[0], def.origin[1]),
+        position: new Vec2(x + def.origin[0] * s, def.origin[1] * s),
         angularDamping: 0.05,
       });
-      const totalArea = def.shapes.reduce((a, s) => a + area(s), 0);
-      const density = def.mass / totalArea;
-      for (const s of def.shapes) {
-        const shape = s.box
-          ? new Box(s.box[0], s.box[1], new Vec2(s.box[2], s.box[3]))
-          : new Circle(new Vec2(s.circle[0], s.circle[1]), s.circle[2]);
+      const totalArea = def.shapes.reduce((a, sh) => a + area(sh), 0);
+      const density = (def.mass * s ** 3) / (totalArea * s * s);
+      for (const sh of def.shapes) {
+        const shape = sh.box
+          ? new Box(sh.box[0] * s, sh.box[1] * s, new Vec2(sh.box[2] * s, sh.box[3] * s))
+          : new Circle(new Vec2(sh.circle[0] * s, sh.circle[1] * s), sh.circle[2] * s);
         const fx = body.createFixture({
           shape,
           density,
@@ -100,7 +113,7 @@ export class Ragdoll {
           restitution: 0,
           filterGroupIndex: -1, // never self-collide
         });
-        fx.setUserData(s.tag || name);
+        fx.setUserData(sh.tag || name);
       }
       this.bodies[name] = body;
     }
@@ -110,7 +123,7 @@ export class Ragdoll {
       this.joints[name] = this.world.createJoint(new RevoluteJoint({
         enableLimit: true, lowerAngle: lo, upperAngle: hi,
         enableMotor: true, maxMotorTorque: 0, motorSpeed: 0,
-      }, this.bodies[a], this.bodies[b], new Vec2(x + o[0], o[1])));
+      }, this.bodies[a], this.bodies[b], new Vec2(x + o[0] * s, o[1] * s)));
     }
 
     const touch = (contact, d) => {
@@ -143,8 +156,10 @@ export class Ragdoll {
   drive(name, target, torque, speed = 14, gain = 18) {
     const j = this.joints[name];
     const err = target - j.getJointAngle();
-    j.setMaxMotorTorque(torque);
-    j.setMotorSpeed(Math.max(-speed, Math.min(speed, gain * err)));
+    const k = this.k;
+    speed *= k.angVel;
+    j.setMaxMotorTorque(torque * k.torque);
+    j.setMotorSpeed(Math.max(-speed, Math.min(speed, gain * k.angVel * err)));
   }
 
   // keys: { q, w, o, p }
@@ -154,6 +169,7 @@ export class Ragdoll {
   //   P  snap knees straight, point toes (jump / block)
   control(keys) {
     const { q, w, o, p } = keys;
+    const K = this.k;
 
     if (this.feetDown) this.lastFeet = this.time;
     const grounded = this.time - this.lastFeet < 0.15;
@@ -229,10 +245,10 @@ export class Ragdoll {
     // centre of mass over the feet (except while jumping).
     this.balancing = upright && !p && !w;
     if (this.balancing) {
-      const fc = this.bodies.foot.getWorldPoint(new Vec2(0.035, 0));
+      const fc = this.bodies.foot.getWorldPoint(new Vec2(0.035 * K.len, 0));
       const c = this.com();
       const v = this.comVel();
-      const err = (c.x - fc.x) + 0.25 * v.x;
+      const err = ((c.x - fc.x) + 0.25 * K.time * v.x) / K.len;
       const dip = Math.max(0, -knee) * 0.4;
       this.drive('ankle', Math.max(-0.6, Math.min(0.75, dip - 6 * err)), 110 * assist, 6, 10);
     }
@@ -248,14 +264,14 @@ export class Ragdoll {
           // Leaning back (with arms up) before the jump turns it into a
           // long, low dive backwards onto the hands — a back handspring.
           const back = w ? Math.max(0, Math.min(1, (this.pLean - 0.08) * 3.5)) : 0;
-          const vy = (0.55 + 0.6 * depth) * (1 - back) * assist;
-          const vx = (-1.3 * back - (w ? 0.3 * (1 - back) : 0)) * assist;
+          const vy = (0.55 + 0.6 * depth) * (1 - back) * assist * K.vel;
+          const vx = (-1.3 * back - (w ? 0.3 * (1 - back) : 0)) * assist * K.vel;
           for (const b of [this.bodies.torso, this.bodies.pelvis]) {
             const m = b.getMass();
             b.applyLinearImpulse(new Vec2(vx * m, vy * m), b.getWorldCenter(), true);
           }
           // Throwing the arms back (W) during the jump starts the flip rotating.
-          if (w) this.bodies.torso.applyAngularImpulse((this.opts.rotKick * (1 - back) + 4 * back) * assist, true);
+          if (w) this.bodies.torso.applyAngularImpulse((this.opts.rotKick * (1 - back) + 4 * back) * assist * K.angMom, true);
           this.popBack = back;
           this.kneeMin = 0;
           this.lastPop = this.time;
@@ -278,7 +294,7 @@ export class Ragdoll {
         const d = fresh ? 90 : 45;
         if (k) {
           for (const b of [this.bodies.torso, this.bodies.pelvis]) {
-            b.applyTorque((-lean * k - b.getAngularVelocity() * d) * assist, true);
+            b.applyTorque((-lean * k * K.torque - b.getAngularVelocity() * d * K.angMom) * assist, true);
           }
         }
       }
@@ -291,9 +307,9 @@ export class Ragdoll {
         this.blocked = true;
         const dir = this.spinDir || 1;
         const v = this.comVel();
-        this.addVelocity(-0.5 * dir, Math.max(0, this.opts.blockUp * assist - v.y));
+        this.addVelocity(-0.5 * dir * K.vel, Math.max(0, this.opts.blockUp * assist * K.vel - v.y));
         const w0 = this.angularMomentum() / this.inertiaAboutCom();
-        this.addSpin(dir * Math.max(0, Math.min(9, this.opts.blockSpin * assist - w0 * dir)));
+        this.addSpin(dir * Math.max(0, Math.min(9 * K.angVel, this.opts.blockSpin * assist * K.angVel - w0 * dir)));
         this.lastBlock = this.time;
       }
       if (this.feetDown) { this.handT = 0; this.blocked = false; }
@@ -303,12 +319,12 @@ export class Ragdoll {
       if (grounded) this.spinDir = 0;
       else if (!this.spinDir) {
         const L = this.angularMomentum();
-        if (Math.abs(L) > 4) this.spinDir = Math.sign(L);
+        if (Math.abs(L) > 4 * K.angMom) this.spinDir = Math.sign(L);
       }
       if (this.airborne && q && this.spinDir && !this.blocked) {
         const t = this.bodies.torso;
         const av = t.getAngularVelocity() * this.spinDir;
-        if (av < 11) t.applyTorque(this.spinDir * 140 * assist, true);
+        if (av < 11 * K.angVel) t.applyTorque(this.spinDir * 140 * assist * K.torque, true);
       }
     }
   }

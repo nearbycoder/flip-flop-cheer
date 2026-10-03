@@ -75,6 +75,27 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .icon:hover { border-color: var(--gold); }
 
+/* character chip under the logo */
+.charchip {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0 2px;
+  padding: 4px 10px 4px 5px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-weight: 800;
+  font-size: 13px;
+}
+.charchip .dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: conic-gradient(var(--c-trim, var(--gold)) 0 25%, var(--c-uniform, #111) 0 50%, var(--c-trim, var(--gold)) 0 75%, var(--c-uniform, #111) 0);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.charchip .caret { color: var(--muted); font-size: 10px; }
+
 /* ---------- toasts ---------- */
 #toast {
   position: fixed;
@@ -357,6 +378,53 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .btnrow { display: flex; gap: 10px; }
 .btnrow > * { flex: 1; margin: 0; }
 
+/* character picker cards */
+.sheet h2.first { margin-top: 4px; }
+.picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.charcard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  text-align: left;
+  padding: 10px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  transition: border-color 0.15s, background 0.15s;
+}
+.charcard[aria-pressed="true"] { border-color: var(--gold); background: rgba(230, 207, 143, 0.12); }
+.charcard b { font-size: 16px; }
+.charcard small { grid-column: 2; font-size: 11px; color: var(--muted); }
+.charcard .avatar {
+  grid-row: span 2;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  position: relative;
+  /* a tiny cheerleader: hair, face, gold V-neck uniform */
+  background:
+    radial-gradient(circle at 50% 40%, var(--c-skin) 0 27%, transparent 28%),
+    radial-gradient(ellipse 40% 22% at 50% 70%, var(--c-trim) 0 60%, transparent 62%),
+    linear-gradient(180deg, var(--c-hair) 0 62%, var(--c-uniform) 62%);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.toggles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 2px 0 6px; }
+.toggles label {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px; font-weight: 800;
+  cursor: pointer;
+}
+.toggles input { width: 18px; height: 18px; accent-color: var(--gold-deep); margin: 0; }
+.row input.wide { width: 130px; font-size: 16px; }
+.rangewrap { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; }
+.row .rangewrap input[type="range"] { width: auto; flex: 1; max-width: 180px; padding: 0; border: 0; background: none; accent-color: var(--gold-deep); }
+.rangewrap output { font-family: 'Lilita One', sans-serif; color: var(--gold); min-width: 44px; text-align: right; }
+
 /* Flop card */
 .card {
   position: relative;
@@ -435,7 +503,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
     gap: 8px;
     left: 10px; right: 10px;
   }
-  .brand { grid-area: brand; align-self: center; }
+  .brand { grid-area: brand; align-self: center; display: flex; align-items: center; gap: 8px; }
+  .charchip { margin: 0; }
   .tools { grid-area: tools; }
   .stats { grid-area: stats; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .logo { font-size: 28px; }
@@ -471,6 +540,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
 
+@media (max-width: 400px) {
+  .toggles { grid-template-columns: 1fr 1fr; }
+}
 @media (max-width: 360px) {
   .move { padding: 8px; gap: 8px; }
   .cap { min-width: 32px; height: 32px; font-size: 18px; }
