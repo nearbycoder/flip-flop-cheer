@@ -25,6 +25,7 @@ export class Input {
     this.padStartPrev = false;
     this.padBackPrev = false;
     this.listeners = [];
+    this.override = null;
 
     addEventListener('keydown', (e) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
@@ -135,7 +136,8 @@ export class Input {
 
   update() {
     this.pollPad();
-    for (const k of ['q', 'w', 'o', 'p']) this.keys[k] = this.kb[k] || this.touch[k] || this.pad[k];
+    const o = this.override; // scripted input (capture mode)
+    for (const k of ['q', 'w', 'o', 'p']) this.keys[k] = o ? o.includes(k) : this.kb[k] || this.touch[k] || this.pad[k];
     return this.keys;
   }
 

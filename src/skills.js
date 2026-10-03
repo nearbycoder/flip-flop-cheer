@@ -18,7 +18,7 @@ export class SkillTracker {
   }
 
   reset(r) {
-    this.baseTurn = Math.round(r.bodies.torso.getAngle() / TAU);
+    this.baseTurn = Math.round(r.torsoTurn / TAU);
     this.seg = this.newSeg();
     this.combo = [];
     this.comboPoints = 0;
@@ -47,7 +47,8 @@ export class SkillTracker {
       const lostLast = r.time - this.lastLand < 0.45 && this.combo.length > 0;
       if (lostLast) {
         const last = this.combo.pop();
-        this.comboPoints -= last.points;
+        this.comboPoints -= last.points * (this.combo.length + 1);
+        this.skills--;
       }
       this.bank(false);
       this.emit('flop', { part: crash, score: this.score, skills: this.skills, distance: this.distance });
@@ -56,7 +57,7 @@ export class SkillTracker {
 
     this.distance = Math.max(this.distance, this.startX - r.com().x);
 
-    const ta = r.bodies.torso.getAngle();
+    const ta = r.torsoTurn;
     const turnF = ta / TAU;
     const lean = ta - Math.round(turnF) * TAU;
     const seg = this.seg;
@@ -71,7 +72,9 @@ export class SkillTracker {
     if (uprightFeet) {
       const turns = Math.round(turnF) - this.baseTurn;
       if (turns !== 0) {
-        this.land(r, turns, seg);
+        // A real flip needs flight time or a hand plant; anything else was a
+        // roll or a glitch, so don't score it.
+        if (seg.hands || seg.air > 0.15) this.land(r, turns, seg);
         this.baseTurn += turns;
       }
       this.seg = this.newSeg();

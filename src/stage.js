@@ -107,28 +107,35 @@ export function buildStage(scene, look) {
     m.rotation.x = -Math.PI / 2;
     m.position.set(-d, 0.002, 1.05);
     scene.add(m);
-    const line = new THREE.Mesh(new THREE.PlaneGeometry(0.04, 2.5), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55 }));
-    line.rotation.x = -Math.PI / 2;
-    line.position.set(-d, 0.001, 0);
-    scene.add(line);
+  }
+  {
+    const marks = [];
+    for (let d = 5; d <= 115; d += 5) marks.push(d);
+    const lines = new THREE.InstancedMesh(
+      new THREE.PlaneGeometry(0.04, 2.5).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55 }),
+      marks.length,
+    );
+    marks.forEach((d, n) => lines.setMatrixAt(n, new THREE.Matrix4().makeTranslation(-d, 0.001, 0)));
+    scene.add(lines);
   }
 
   // Bleachers + crowd
-  const bleach = new THREE.MeshStandardMaterial({ color: '#8d94a0', metalness: 0.6, roughness: 0.4 });
+  const bleach = new THREE.MeshLambertMaterial({ color: '#8d94a0' });
   const ROWS = 7;
   for (let r = 0; r < ROWS; r++) {
     const step = new THREE.Mesh(new THREE.BoxGeometry(160, 0.08, 0.9), bleach);
     step.position.set(-40, 0.45 + r * 0.45, -7 - r * 0.9);
     step.receiveShadow = true;
     scene.add(step);
-    const riser = new THREE.Mesh(new THREE.BoxGeometry(160, 0.45, 0.04), new THREE.MeshStandardMaterial({ color: '#3d4350' }));
+    const riser = new THREE.Mesh(new THREE.BoxGeometry(160, 0.45, 0.04), new THREE.MeshLambertMaterial({ color: '#3d4350' }));
     riser.position.set(-40, 0.22 + r * 0.45, -6.55 - r * 0.9);
     scene.add(riser);
   }
   const PER_ROW = 150;
   const count = ROWS * PER_ROW;
-  const body = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.17, 0.35, 4, 8), new THREE.MeshStandardMaterial({ roughness: 0.8 }), count);
-  const heads = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshStandardMaterial({ roughness: 0.7 }), count);
+  const body = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.17, 0.35, 3, 6), new THREE.MeshLambertMaterial(), count);
+  const heads = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshLambertMaterial(), count);
   const shirtColors = [look.uniform, look.trim, '#f4f1ea', look.trim, '#2b2b2b', '#7a1f2b', '#1f3f7a'];
   const skinColors = ['#f1c7a2', '#d79f76', '#a8693f', '#7a4a2b', '#5a3420', '#e8b48c'];
   const m4 = new THREE.Matrix4();
@@ -172,7 +179,7 @@ export function buildStage(scene, look) {
   scene.add(banner);
 
   // Light towers
-  const pole = new THREE.MeshStandardMaterial({ color: '#555b66', metalness: 0.5, roughness: 0.5 });
+  const pole = new THREE.MeshLambertMaterial({ color: '#555b66' });
   const lamp = new THREE.MeshBasicMaterial({ color: '#fffbe8' });
   const glowTex = canvasTex(64, 64, (g) => {
     const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -181,16 +188,20 @@ export function buildStage(scene, look) {
     grd.addColorStop(1, 'rgba(255,240,200,0)');
     g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
   });
-  for (let x = 14; x > -130; x -= 28) {
-    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 16, 8), pole);
-    p.position.set(x, 8, -16);
-    scene.add(p);
+  const towers = [];
+  for (let x = 14; x > -130; x -= 28) towers.push(x);
+  const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.15, 0.25, 16, 6), pole, towers.length);
+  const lamps = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.5, 0.4), lamp, towers.length * 12);
+  towers.forEach((x, n) => {
+    poles.setMatrixAt(n, new THREE.Matrix4().makeTranslation(x, 8, -16));
     for (let a = 0; a < 3; a++) for (let b = 0; b < 4; b++) {
-      const l = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.4), lamp);
-      l.position.set(x - 0.9 + b * 0.6, 15.6 + a * 0.5, -15.7);
-      scene.add(l);
+      lamps.setMatrixAt(n * 12 + a * 4 + b, new THREE.Matrix4().makeTranslation(x - 0.9 + b * 0.6, 15.6 + a * 0.5, -15.7));
     }
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  });
+  scene.add(poles, lamps);
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  for (const x of towers) {
+    const glow = new THREE.Sprite(glowMat);
     glow.scale.set(7, 5, 1);
     glow.position.set(x, 16.1, -15.5);
     scene.add(glow);
@@ -231,24 +242,32 @@ export function buildStage(scene, look) {
   ball.add(lace);
   scene.add(ball);
 
-  // Autumn tree line beyond the stadium
+  // Autumn tree line beyond the stadium (one instanced draw call)
   const leafColors = ['#8a3b12', '#a5521a', '#6e2a10', '#9c6b1a', '#4a2a14'];
+  const trees = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshLambertMaterial(), 70);
   for (let k = 0; k < 70; k++) {
-    const t = new THREE.Mesh(new THREE.SphereGeometry(1.5 + Math.random() * 1.5, 8, 6), new THREE.MeshStandardMaterial({ color: leafColors[k % leafColors.length], roughness: 1 }));
-    t.position.set(30 - k * 3.2 + Math.random() * 2, 3 + Math.random() * 2, -26 - Math.random() * 6);
-    scene.add(t);
+    const r = 1.5 + Math.random() * 1.5;
+    m4.makeScale(r, r, r).setPosition(30 - k * 3.2 + Math.random() * 2, 3 + Math.random() * 2, -26 - Math.random() * 6);
+    trees.setMatrixAt(k, m4);
+    trees.setColorAt(k, col.set(leafColors[k % leafColors.length]));
   }
+  scene.add(trees);
 
-  stage.update = (t, focusX) => {
+  let crowdAnimating = false;
+  stage.update = (t, focusX, dt) => {
     key.position.set(focusX + 4, 9, 6);
     key.target.position.set(focusX, 0.6, 0);
-    stage.cheer = Math.max(0, stage.cheer - 1 / 60 * 0.7);
-    const { body: bm, heads: hm } = stage.crowd;
+    stage.cheer = Math.max(0, stage.cheer - dt * 0.7);
     const ch = stage.cheer;
+    // Only touch the crowd matrices while they're cheering (plus one last
+    // frame to settle them back into their seats).
+    if (ch <= 0 && !crowdAnimating) return;
+    crowdAnimating = ch > 0;
+    const { body: bm, heads: hm } = stage.crowd;
     for (let n = 0; n < stage.crowdBase.length; n++) {
       const c = stage.crowdBase[n];
-      if (Math.abs(c.x - focusX) > 30) continue;
-      const jump = Math.max(0, Math.sin(t * 9 + c.phase)) * 0.25 * ch * c.amp + Math.sin(t * 2 + c.phase) * 0.015;
+      if (Math.abs(c.x - focusX) > 22) continue;
+      const jump = Math.max(0, Math.sin(t * 9 + c.phase)) * 0.25 * ch * c.amp;
       m4.makeTranslation(c.x, c.y + jump, c.z);
       bm.setMatrixAt(n, m4);
       m4.makeTranslation(c.x, c.y + 0.42 + jump, c.z);
@@ -256,6 +275,14 @@ export function buildStage(scene, look) {
     }
     bm.instanceMatrix.needsUpdate = true;
     hm.instanceMatrix.needsUpdate = true;
+  };
+
+  // Shadow resolution can change with the quality level.
+  stage.setShadowSize = (size) => {
+    if (key.shadow.mapSize.x === size) return;
+    key.shadow.mapSize.set(size, size);
+    key.shadow.map?.dispose();
+    key.shadow.map = null;
   };
 
   return stage;

@@ -272,7 +272,16 @@ export class Gymnast {
       }
     }
 
-    this.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    // Only the big shapes cast shadows; tiny face details would just add
+    // draw calls to the shadow pass without changing how it looks.
+    this.root.traverse((o) => {
+      if (!o.isMesh) return;
+      o.geometry.computeBoundingSphere();
+      const sc = o.getWorldScale(new THREE.Vector3());
+      const r = o.geometry.boundingSphere.radius * Math.max(sc.x, sc.y, sc.z);
+      o.castShadow = r > 0.03;
+      o.receiveShadow = r > 0.03;
+    });
 
     this.braids = new Braids(this.scene, L);
   }

@@ -64,60 +64,101 @@
   </div>
 
   <div id="help" class="overlay" hidden>
-    <div class="card wide">
-      <button class="close" data-close aria-label="Close">✕</button>
-      <h1>Flip <span>Flop</span> Cheer</h1>
-      <p class="lead">Like QWOP — but tumbling. You control her hips, arms and legs. Land skills on your feet; anything else is a <b>FLOP!</b></p>
-      <div class="grid">
-        <div class="move"><span class="cap">Q</span><div><b>Tuck</b><br />knees to chest, arms to shins</div></div>
-        <div class="move"><span class="cap">W</span><div><b>Arch</b><br />arms overhead, lean back</div></div>
-        <div class="move"><span class="cap">O</span><div><b>Bend</b><br />dip / sit back</div></div>
-        <div class="move"><span class="cap">P</span><div><b>Jump</b><br />snap legs straight</div></div>
+    <div class="sheet" role="dialog" aria-labelledby="helpTitle">
+      <div class="sheet-head">
+        <h1 id="helpTitle">Flip <span>Flop</span> Cheer</h1>
+        <button class="close" data-close aria-label="Close">✕</button>
       </div>
-      <h2>Back Tuck</h2>
-      <ol>
-        <li>Hold <span class="cap s">O</span> to dip.</li>
-        <li>Press <span class="cap s">P</span>+<span class="cap s">W</span> together to jump &amp; throw your arms.</li>
-        <li>Switch to <span class="cap s">Q</span> to tuck… then <b>let go</b> to open up and land.</li>
-      </ol>
-      <h2>Back Handspring</h2>
-      <ol>
-        <li>Hold <span class="cap s">O</span> to sit, then add <span class="cap s">W</span> and lean back (about half a second).</li>
-        <li>Press <span class="cap s">P</span>+<span class="cap s">W</span> to jump back onto your hands.</li>
-        <li>The moment your hands touch, tap <span class="cap s">Q</span> to snap down. Let go to land.</li>
-      </ol>
-      <h2>Combos</h2>
-      <p>Land and go again quickly to chain skills — each one in a combo multiplies its points. Stand still to <b>stick it</b> and bank the combo (+50).</p>
-      <div class="ctrlrow">
-        <div><b>Phone:</b> hold the big buttons — slide your thumb between Q↔W or O↔P.</div>
-        <div><b>Controller:</b> LB/X = Q · LT/Y = W · RB/A = O · RT/B = P · Start = restart</div>
-        <div><b>Keyboard:</b> Q W O P · R or Space = restart · H = help</div>
+      <div class="sheet-body">
+        <p class="lead">Like QWOP — but tumbling. Each button moves one part of her body. Land on your feet, or it's a <b>FLOP!</b></p>
+
+        <div class="moves">
+          <div class="move"><span class="cap">Q</span><div><b>Tuck</b><small>knees to chest</small></div></div>
+          <div class="move"><span class="cap">W</span><div><b>Arch</b><small>arms up, lean back</small></div></div>
+          <div class="move"><span class="cap">O</span><div><b>Bend</b><small>dip / sit back</small></div></div>
+          <div class="move"><span class="cap">P</span><div><b>Jump</b><small>snap legs straight</small></div></div>
+        </div>
+
+        <h2>Skills</h2>
+        <details class="skill" open>
+          <summary><span>Back Tuck</span><em>150</em></summary>
+          <ol>
+            <li>Hold <span class="cap s">O</span> to dip.</li>
+            <li>Press <span class="cap s">P</span> + <span class="cap s">W</span> together to jump.</li>
+            <li>Switch to <span class="cap s">Q</span> to tuck, then <b>let go</b> to land.</li>
+          </ol>
+        </details>
+        <details class="skill">
+          <summary><span>Back Handspring</span><em>100</em></summary>
+          <ol>
+            <li>Hold <span class="cap s">O</span>, add <span class="cap s">W</span> and lean back (~½ sec).</li>
+            <li>Press <span class="cap s">P</span> + <span class="cap s">W</span> to jump onto your hands.</li>
+            <li>When your hands touch, tap <span class="cap s">Q</span>. Let go to land.</li>
+          </ol>
+        </details>
+        <details class="skill">
+          <summary><span>Combos &amp; scoring</span><em>×2 ×3…</em></summary>
+          <p>Go again right after landing to chain skills — each one multiplies its points. Stand still to <b>stick it</b> (+50).</p>
+        </details>
+
+        <h2>Controls</h2>
+        <div class="tabs" role="tablist">
+          <button role="tab" data-tab="phone">📱 Phone</button>
+          <button role="tab" data-tab="pad">🎮 Controller</button>
+          <button role="tab" data-tab="kb">⌨️ Keyboard</button>
+        </div>
+        <div class="tabpanel" data-panel="phone">Hold the big buttons with your thumbs — <b>Q W</b> on the left, <b>O P</b> on the right. Slide a thumb between them to switch fast. ↺ restarts.</div>
+        <div class="tabpanel" data-panel="pad" hidden>
+          <div class="padmap">
+            <span><b>LB</b> / <b>X</b></span><span class="cap s">Q</span>
+            <span><b>LT</b> / <b>Y</b></span><span class="cap s">W</span>
+            <span><b>RB</b> / <b>A</b></span><span class="cap s">O</span>
+            <span><b>RT</b> / <b>B</b></span><span class="cap s">P</span>
+          </div>
+          <small>Sticks work too. Start = restart · Back = help.</small>
+        </div>
+        <div class="tabpanel" data-panel="kb" hidden>Hold <b>Q W O P</b>. <span class="kbd">R</span> or <span class="kbd">Space</span> restarts · <span class="kbd">H</span> help · <span class="kbd">F</span> FPS meter.</div>
       </div>
-      <button class="primary" data-close>Let's cheer!</button>
+      <div class="sheet-foot">
+        <button class="primary" data-close>Let's cheer!</button>
+      </div>
     </div>
   </div>
 
   <div id="settings" class="overlay" hidden>
-    <div class="card">
-      <button class="close" data-close aria-label="Close">✕</button>
-      <h1>Customize</h1>
-      <label class="row">Floor
-        <select id="optMode">
-          <option value="spring">Spring floor (easier)</option>
-          <option value="gym">Gym floor (expert)</option>
-        </select>
-      </label>
-      <label class="row">Jersey letter <input id="optLetter" maxlength="2" /></label>
-      <div class="swatches">
-        <label>Skin <input type="color" id="optSkin" /></label>
-        <label>Hair <input type="color" id="optHair" /></label>
-        <label>Highlights <input type="color" id="optHighlight" /></label>
-        <label>Uniform <input type="color" id="optUniform" /></label>
-        <label>Trim <input type="color" id="optTrim" /></label>
-        <label>Boots <input type="color" id="optBoots" /></label>
+    <div class="sheet" role="dialog" aria-labelledby="setTitle">
+      <div class="sheet-head">
+        <h1 id="setTitle">Customize</h1>
+        <button class="close" data-close aria-label="Close">✕</button>
       </div>
-      <div class="btnrow">
-        <button id="btnResetLook">Reset look</button>
+      <div class="sheet-body">
+        <label class="row">Floor
+          <select id="optMode">
+            <option value="spring">Spring floor (easier)</option>
+            <option value="gym">Gym floor (expert)</option>
+          </select>
+        </label>
+        <label class="row">Graphics
+          <select id="optGfx">
+            <option value="auto">Auto (keeps 60 fps)</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+        <label class="row">Jersey letter <input id="optLetter" maxlength="2" autocomplete="off" /></label>
+        <h2>Look</h2>
+        <div class="swatches">
+          <label><input type="color" id="optSkin" />Skin</label>
+          <label><input type="color" id="optHair" />Hair</label>
+          <label><input type="color" id="optHighlight" />Highlights</label>
+          <label><input type="color" id="optUniform" />Uniform</label>
+          <label><input type="color" id="optTrim" />Trim</label>
+          <label><input type="color" id="optBoots" />Boots</label>
+        </div>
+      </div>
+      <div class="sheet-foot btnrow">
+        <button id="btnResetLook" class="ghost">Reset look</button>
         <button class="primary" data-close>Done</button>
       </div>
     </div>

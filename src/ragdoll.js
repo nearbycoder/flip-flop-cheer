@@ -39,6 +39,9 @@ export const DEFAULT_TUNING = {
   springFloor: true, // assisted "spring floor" mode
   rotKick: 3.5,
   blockUp: 1.8,
+  landHold: 1.0,
+  landK: 900,
+  coreK: 320,
   blockSpin: 8.5,
 };
 
@@ -63,6 +66,8 @@ export class Ragdoll {
     this.lastPop = -1;
     this.lastBlock = -1;
     this.lastFeet = 0;
+    this.torsoTurn = 0;
+    this.prevTorsoAngle = 0;
     this.spinDir = 0;
     this.airT = 0;
     this.landT = -1;
@@ -153,7 +158,7 @@ export class Ragdoll {
     if (this.feetDown) this.lastFeet = this.time;
     const grounded = this.time - this.lastFeet < 0.15;
     const knee = this.angle('knee');
-    const ta = this.bodies.torso.getAngle();
+    const ta = this.torsoTurn;
     const lean = ta - Math.round(ta / (2 * Math.PI)) * 2 * Math.PI; // + = leaning back
     const upright = grounded && !this.handsDown && Math.abs(lean) < 0.9;
     const assist = this.opts.springFloor ? 1 : 0.6;
@@ -268,8 +273,8 @@ export class Ragdoll {
       }
       if (this.feetDown && !this.handsDown && Math.abs(lean) < 1.25) {
         // Strong right after a landing, gentle "core strength" otherwise.
-        const fresh = this.time - this.landT < 0.6;
-        const k = fresh ? 700 : (w || p ? 0 : 220);
+        const fresh = this.time - this.landT < this.opts.landHold;
+        const k = fresh ? this.opts.landK : (w || p ? 0 : this.opts.coreK);
         const d = fresh ? 90 : 45;
         if (k) {
           for (const b of [this.bodies.torso, this.bodies.pelvis]) {
@@ -312,6 +317,13 @@ export class Ragdoll {
     this.control(keys);
     this.world.step(STEP, 10, 8);
     this.time += STEP;
+    // Box2D may re-normalise body angles by multiples of 2π, so keep our own
+    // continuous torso rotation for counting flips.
+    const a = this.bodies.torso.getAngle();
+    let d = a - this.prevTorsoAngle;
+    d -= Math.round(d / (2 * Math.PI)) * 2 * Math.PI;
+    this.torsoTurn += d;
+    this.prevTorsoAngle = a;
   }
 
   // Centre of mass of the whole gymnast.

@@ -15,7 +15,7 @@ export function run(seq, opts = {}) {
     }
     log.push(`${k||'-'}@${r.time.toFixed(2)} ang=${(r.bodies.torso.getAngle()*180/Math.PI).toFixed(0)} com=${r.com().y.toFixed(2)} x=${r.com().x.toFixed(2)}`);
   }
-  return { r, log, handsTouched, maxAir, crash, maxH, rot: r.bodies.torso.getAngle() / (2 * Math.PI), feet: r.feetDown };
+  return { r, log, handsTouched, maxAir, crash, maxH, rot: r.torsoTurn / (2 * Math.PI), feet: r.feetDown };
 }
 if (process.argv[1]?.endsWith('sim.mjs') && process.argv[2]) {
   const seq = JSON.parse(process.argv[2]);

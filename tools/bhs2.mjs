@@ -21,7 +21,7 @@ function attempt(d1b, d2, d4, k4, k5, delay) {
     if (r.handsDown) hands = true;
     if (!crash && r.crashPart) crash = r.crashPart;
   }
-  const rot = r.bodies.torso.getAngle() / (2 * Math.PI);
+  const rot = r.torsoTurn / (2 * Math.PI);
   return { rot, crash, hands, feet: r.feetDown };
 }
 let ok = 0, n = 0; const hist = {}; const wins = [];
