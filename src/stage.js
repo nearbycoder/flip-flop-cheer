@@ -171,7 +171,7 @@ export function buildStage(scene, look) {
         g.font = 'italic 900 78px "Arial Black", Arial, sans-serif';
         g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillStyle = look.trim;
-        g.fillText(`GO ${look.letter || ''}! FLIP FLOP CHEER`, w / 2, h / 2 + 4);
+        g.fillText(`GO ${(look.team || look.letter || '').toUpperCase()}! FLIP FLOP CHEER`, w / 2, h / 2 + 4, w - 40);
       }),
     }),
   );

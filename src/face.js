@@ -136,6 +136,7 @@ function skinTexture(look) {
     g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 5.2 * PPD); g.stroke();
   }
   // braces: wire + brackets
+  if (look.braces !== false) {
   const wire = (dy) => {
     g.beginPath();
     for (let a = -16; a <= 16; a += 1) {
@@ -152,6 +153,7 @@ function skinTexture(look) {
     g.beginPath(); g.roundRect(x - 0.95 * PPD, y - 0.95 * PPD, 1.9 * PPD, 1.9 * PPD, 3); g.fill();
     g.fillStyle = '#eef3f7';
     g.fillRect(x - 0.6 * PPD, y - 0.6 * PPD, 0.55 * PPD, 0.55 * PPD);
+  }
   }
   g.restore();
 
@@ -279,6 +281,7 @@ export function buildHead(look) {
   }
 
   head.add(buildHairCap(look));
+  if (look.bow) head.add(buildBow(look));
   return head;
 }
 
@@ -290,21 +293,39 @@ function buildHairCap(look) {
   g.fillStyle = look.hair;
   g.fillRect(0, 0, TW, TH);
 
-  // braid parts: small square sections, each a twisted braid root
   let seed = 11;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  const rowH = 22;
-  g.fillStyle = shade(look.hair, 0.7);
-  g.fillRect(0, 0, TW, TH);
-  for (let row = 0; row * rowH < TH; row++) {
-    const y = row * rowH;
-    for (let x = (row % 2) * 13; x < TW + 30; x += 26) {
-      const hl = rnd() < 0.3;
-      g.fillStyle = hl ? mix(look.hair, look.highlight, 0.25 + rnd() * 0.25) : shade(look.hair, 0.95 + rnd() * 0.2);
-      g.beginPath(); g.roundRect(x + 2, y + 2, 22, rowH - 4, 7); g.fill();
-      g.strokeStyle = 'rgba(0,0,0,0.25)';
-      g.lineWidth = 2;
-      g.beginPath(); g.moveTo(x + 6, y + 5); g.lineTo(x + 18, y + rowH - 5); g.stroke();
+  if (look.hairStyle === 'curls') {
+    // smooth hair brushed up toward the bow, with soft wavy strands
+    g.fillStyle = look.hair;
+    g.fillRect(0, 0, TW, TH);
+    g.lineCap = 'round';
+    for (let i = 0; i < 900; i++) {
+      const x = rnd() * TW, y0 = TH * (0.15 + rnd() * 0.5);
+      g.strokeStyle = rnd() < 0.35 ? mix(look.hair, look.highlight, 0.4 + rnd() * 0.4) : shade(look.hair, 0.7 + rnd() * 0.5);
+      g.lineWidth = 2 + rnd() * 3;
+      g.globalAlpha = 0.7;
+      g.beginPath();
+      g.moveTo(x, y0);
+      g.bezierCurveTo(x + 10, y0 - 40, x - 10, y0 - 80, x + (rnd() - 0.5) * 20, y0 - 140);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+  } else {
+    // braid parts: small square sections, each a twisted braid root
+    const rowH = 22;
+    g.fillStyle = shade(look.hair, 0.7);
+    g.fillRect(0, 0, TW, TH);
+    for (let row = 0; row * rowH < TH; row++) {
+      const y = row * rowH;
+      for (let x = (row % 2) * 13; x < TW + 30; x += 26) {
+        const hl = rnd() < 0.3;
+        g.fillStyle = hl ? mix(look.hair, look.highlight, 0.25 + rnd() * 0.25) : shade(look.hair, 0.95 + rnd() * 0.2);
+        g.beginPath(); g.roundRect(x + 2, y + 2, 22, rowH - 4, 7); g.fill();
+        g.strokeStyle = 'rgba(0,0,0,0.25)';
+        g.lineWidth = 2;
+        g.beginPath(); g.moveTo(x + 6, y + 5); g.lineTo(x + 18, y + rowH - 5); g.stroke();
+      }
     }
   }
 
@@ -338,11 +359,92 @@ function buildHairCap(look) {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
+  const curls = look.hairStyle === 'curls';
   const cap = new THREE.Mesh(
-    new THREE.SphereGeometry(HEAD_R * 1.06, 64, 48),
+    new THREE.SphereGeometry(HEAD_R * (curls ? 1.09 : 1.06), 64, 48),
     new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.5, roughness: 0.75 }),
   );
   cap.position.y = HEAD_Y + 0.003;
   cap.scale.copy(HEAD_SCALE);
-  return cap;
+  if (!curls) return cap;
+  // half-up: the top section is gathered into a little puff under the bow
+  const group = new THREE.Group();
+  group.add(cap);
+  const puff = new THREE.Mesh(new THREE.SphereGeometry(0.05, 20, 14), new THREE.MeshStandardMaterial({ color: look.hair, roughness: 0.8 }));
+  puff.position.copy(surface(-170, 62, 0.012).p);
+  puff.scale.set(1.1, 0.8, 1.1);
+  group.add(puff);
+  // a soft mass of hair behind the head so the loose curls read as one mane
+  const mane = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshStandardMaterial({ color: look.hair, roughness: 0.85 }));
+  mane.scale.set(0.085, 0.17, 0.125);
+  mane.position.copy(surface(180, -18, -0.03).p);
+  group.add(mane);
+  return group;
+}
+
+// Big competition cheer bow: black glitter loops, gold team centre.
+function buildBow(look) {
+  const bow = new THREE.Group();
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = shade(look.uniform, 1.15);
+  g.fillRect(0, 0, 256, 256);
+  g.fillStyle = '#0d0d10';
+  g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 140; i++) {
+    g.fillStyle = Math.random() < 0.7 ? 'rgba(230,230,235,0.85)' : look.trim;
+    g.beginPath(); g.arc(Math.random() * 256, Math.random() * 256, 0.8 + Math.random() * 1.6, 0, Math.PI * 2); g.fill();
+  }
+  // rhinestone chevron stripe
+  g.strokeStyle = 'rgba(230,230,240,0.9)'; g.lineWidth = 10; g.setLineDash([6, 4]);
+  g.beginPath(); g.moveTo(0, 150); g.lineTo(128, 96); g.lineTo(256, 150); g.stroke();
+  g.setLineDash([]);
+  const glitter = new THREE.CanvasTexture(c);
+  glitter.colorSpace = THREE.SRGBColorSpace;
+  const loopMat = new THREE.MeshStandardMaterial({ map: glitter, roughness: 0.45, metalness: 0.1 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: look.trim, roughness: 0.3, metalness: 0.5, emissive: new THREE.Color(look.trim).multiplyScalar(0.15) });
+
+  for (const s of [-1, 1]) {
+    const loop = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), loopMat);
+    loop.scale.set(0.022, 0.042, 0.066);
+    loop.position.set(0, 0.02, s * 0.06);
+    loop.rotation.x = s * 0.45;
+    bow.add(loop);
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.085, 0.034), loopMat);
+    tail.position.set(0, -0.035, s * 0.032);
+    tail.rotation.x = -s * 0.5;
+    bow.add(tail);
+  }
+  // centre knot with the team name
+  const tc = document.createElement('canvas');
+  tc.width = 256; tc.height = 160;
+  const tg = tc.getContext('2d');
+  const grd = tg.createLinearGradient(0, 0, 256, 160);
+  grd.addColorStop(0, shade(look.trim, 0.85)); grd.addColorStop(0.5, shade(look.trim, 1.3)); grd.addColorStop(1, shade(look.trim, 0.85));
+  tg.fillStyle = grd; tg.fillRect(0, 0, 256, 160);
+  tg.fillStyle = '#121212';
+  // paw print
+  tg.beginPath(); tg.ellipse(128, 52, 20, 16, 0, 0, Math.PI * 2); tg.fill();
+  for (const [x, y] of [[96, 30], [114, 18], [142, 18], [160, 30]]) { tg.beginPath(); tg.ellipse(x, y, 8, 10, 0, 0, Math.PI * 2); tg.fill(); }
+  tg.font = '900 50px "Arial Black", Arial, sans-serif';
+  tg.textAlign = 'center'; tg.textBaseline = 'middle';
+  tg.lineWidth = 6; tg.strokeStyle = '#ffffff';
+  const team = (look.team || look.letter || '').toUpperCase().slice(0, 8);
+  tg.strokeText(team, 128, 112, 236);
+  tg.fillText(team, 128, 112, 236);
+  const tt = new THREE.CanvasTexture(tc);
+  tt.colorSpace = THREE.SRGBColorSpace;
+  // BoxGeometry face order: +x, -x, +y, -y, +z, -z. The label goes on +x (front).
+  const label = new THREE.MeshStandardMaterial({ map: tt, roughness: 0.35, metalness: 0.3 });
+  const knot = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.05, 0.08), [label, goldMat, goldMat, goldMat, goldMat, goldMat]);
+  knot.position.y = 0.012;
+  bow.add(knot);
+
+  // sit on top of the head, facing the same way as the face, tipped forward
+  const { p } = surface(-20, 74, 0.012);
+  bow.position.copy(p);
+  bow.rotation.set(0, -FACE_AZ * DEG, 0);
+  bow.rotateZ(0.35);
+  return bow;
 }

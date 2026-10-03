@@ -33,19 +33,27 @@ Works on desktop, phones and tablets (touch), and with game controllers.
   markers and a crowd that jumps up when you land something.
 - **Sound effects:** synthesized in the browser, so there are no audio files to load.
 
-### The gymnast
+### Two cheerleaders
+
+Both cheer for the Broken Arrow Tigers: black shell, metallic gold V-neck and side
+panels, and the gold **B** with an arrow through it.
 
 | | | |
 | --- | --- | --- |
-| <img src="docs/media/gymnast.png" alt="The gymnast in a black and gold uniform" /> | <img src="docs/media/face.png" alt="Close-up of the face: braces smile, box braids" /> | <img src="docs/media/custom.png" alt="A customized maroon and white uniform" /> |
-| Black & gold cheer uniform, white western boots. | Sculpted face with a braces smile, and long box braids (simulated, so they whip around during flips). | Fully customizable: skin, hair, highlights, uniform, trim, boots and jersey letter. |
+| <img src="docs/media/gymnast.png" alt="A'myiah in the Broken Arrow uniform with white western boots" /> | <img src="docs/media/lili.png" alt="Lili, shorter, with pom-poms and a big Tigers bow" /> | <img src="docs/media/lili-tuck.png" alt="Lili mid back tuck, curls and pom-poms flying" /> |
+| **A'myiah:** long box braids with honey-blonde ends, braces smile, white western boots. | **Lili:** seven years old and a head shorter, long dark curls under a big Tigers bow, gold pom-poms, cheer sneakers. | Lili's physics body is really smaller, so she flips a little quicker, just like a real seven-year-old. |
+
+| | | |
+| --- | --- | --- |
+| <img src="docs/media/face.png" alt="A'myiah close-up: braces smile and box braids" /> | <img src="docs/media/lili-face.png" alt="Lili close-up: curls and cheer bow" /> | <img src="docs/media/custom.png" alt="A customized maroon and white uniform" /> |
+| Sculpted faces with 3D eyes, brows and nose. Hair is simulated, so it whips around during flips. | Long curls drawn as flowing hair ribbons, plus the competition bow. | Each girl is fully customizable, and saved separately: height, uniform style, letter, team name, hair, shoes, bow, pom-poms, braces and every color. |
 
 ### On your phone
 
 | | | |
 | --- | --- | --- |
 | <img src="docs/media/phone-help.png" alt="How-to-play sheet on a phone" /> | <img src="docs/media/phone-play.png" alt="Playing on a phone with big touch buttons" /> | <img src="docs/media/phone-customize.png" alt="Customize sheet on a phone" /> |
-| A how-to-play sheet with step-by-step skill recipes. | Big thumb buttons: Q W on the left, O P on the right. Slide your thumb between them. | Customize the floor, graphics and look. |
+| Pick who's tumbling, then step-by-step skill recipes. | Big thumb buttons: Q W on the left, O P on the right. Slide your thumb between them. | Customize each cheerleader, plus floor and graphics settings. |
 
 ---
 
@@ -115,11 +123,12 @@ browser renders.
 
 | File | What's in it |
 | --- | --- |
-| `src/ragdoll.js` | 2D ragdoll, joint motors, balance and spring-floor assists |
+| `src/ragdoll.js` | 2D ragdoll, joint motors, balance and spring-floor assists; scales to any body size |
 | `src/skills.js` | skill recognition, combos, scoring, falls |
-| `src/character.js` | the 3D gymnast: uniform, skirt, boots, limbs |
-| `src/face.js` | sculpted face, painted details, hair cap |
-| `src/hair.js` | verlet-simulated box braids |
+| `src/characters.js` | the playable cheerleaders (A'myiah, Lili) and their default looks |
+| `src/character.js` | the 3D gymnast: uniforms, skirt, boots/sneakers, pom-poms, limbs |
+| `src/face.js` | sculpted face, painted details, hair cap, cheer bow |
+| `src/hair.js` | verlet-simulated hair: box braids or curly hair ribbons |
 | `src/stage.js` | stadium, mat, crowd, lights |
 | `src/input.js` | keyboard, multi-touch and gamepad input |
 | `src/quality.js` | adaptive quality controller |

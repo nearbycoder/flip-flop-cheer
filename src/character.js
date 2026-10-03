@@ -3,16 +3,9 @@
 import * as THREE from 'three';
 import { Braids } from './hair.js';
 import { buildHead } from './face.js';
+import { CHARACTERS, FIRST_CHARACTER } from './characters.js';
 
-export const DEFAULT_LOOK = {
-  skin: '#a0673f',
-  uniform: '#141214',
-  trim: '#d8c79a',
-  letter: 'D',
-  hair: '#3a2416',
-  highlight: '#d9b27a',
-  boots: '#f2eee6',
-};
+export const DEFAULT_LOOK = CHARACTERS[FIRST_CHARACTER].look;
 
 const LEG_Z = 0.075;
 const ARM_Z = 0.165;
@@ -41,36 +34,90 @@ function uniformTexture(look) {
   g.fillStyle = look.uniform;
   g.fillRect(0, 0, 1024, 512);
   const front = 256; // u = 0.25 faces +x
-  const trimPath = (draw) => {
-    // V-neck
+
+  if (look.uniformStyle === 'panels') {
+    // Solid metallic V-neck insert + gold side panels under the arms.
+    const gold = g.createLinearGradient(front - 110, 0, front + 110, 160);
+    gold.addColorStop(0, shade(look.trim, 0.8));
+    gold.addColorStop(0.45, shade(look.trim, 1.25));
+    gold.addColorStop(1, shade(look.trim, 0.85));
+    g.fillStyle = gold;
     g.beginPath();
-    g.moveTo(front - 120, -10);
-    g.lineTo(front, 175);
-    g.lineTo(front + 120, -10);
-    draw();
-    // racerback armholes on both sides (u = 0 / 1 and u = 0.5)
+    g.moveTo(front - 112, -4); g.lineTo(front, 165); g.lineTo(front + 112, -4);
+    g.closePath(); g.fill();
+    g.strokeStyle = look.uniform; g.lineWidth = 10;
+    g.beginPath(); g.moveTo(front - 70, -4); g.lineTo(front, 110); g.lineTo(front + 70, -4); g.stroke();
+    g.fillStyle = look.uniform;
+    g.beginPath(); g.moveTo(front - 66, -4); g.lineTo(front, 104); g.lineTo(front + 66, -4); g.closePath(); g.fill();
     for (const ax of [0, 512, 1024]) {
+      const side = g.createLinearGradient(ax - 60, 0, ax + 60, 0);
+      side.addColorStop(0, shade(look.trim, 0.85));
+      side.addColorStop(0.5, shade(look.trim, 1.2));
+      side.addColorStop(1, shade(look.trim, 0.85));
+      g.fillStyle = side;
       g.beginPath();
-      g.moveTo(ax - 95, -10);
-      g.quadraticCurveTo(ax - 70, 190, ax, 200);
-      g.quadraticCurveTo(ax + 70, 190, ax + 95, -10);
-      draw();
+      g.moveTo(ax - 70, 60); g.quadraticCurveTo(ax, 40, ax + 70, 60);
+      g.lineTo(ax + 18, 330); g.lineTo(ax - 18, 330);
+      g.closePath(); g.fill();
     }
-  };
-  g.lineCap = 'butt';
-  g.lineJoin = 'miter';
-  trimPath(() => { g.strokeStyle = look.trim; g.lineWidth = 46; g.stroke(); });
-  trimPath(() => { g.strokeStyle = look.uniform; g.lineWidth = 20; g.stroke(); });
-  trimPath(() => { g.strokeStyle = look.trim; g.lineWidth = 6; g.stroke(); });
-  // chest letter
+  } else {
+    const trimPath = (draw) => {
+      // V-neck
+      g.beginPath();
+      g.moveTo(front - 120, -10);
+      g.lineTo(front, 175);
+      g.lineTo(front + 120, -10);
+      draw();
+      // racerback armholes on both sides (u = 0 / 1 and u = 0.5)
+      for (const ax of [0, 512, 1024]) {
+        g.beginPath();
+        g.moveTo(ax - 95, -10);
+        g.quadraticCurveTo(ax - 70, 190, ax, 200);
+        g.quadraticCurveTo(ax + 70, 190, ax + 95, -10);
+        draw();
+      }
+    };
+    g.lineCap = 'butt';
+    g.lineJoin = 'miter';
+    trimPath(() => { g.strokeStyle = look.trim; g.lineWidth = 46; g.stroke(); });
+    trimPath(() => { g.strokeStyle = look.uniform; g.lineWidth = 20; g.stroke(); });
+    trimPath(() => { g.strokeStyle = look.trim; g.lineWidth = 6; g.stroke(); });
+  }
+
+  // chest letter (panels style gets the embroidered white outline)
+  const ly = look.uniformStyle === 'panels' ? 270 : 300;
   g.font = 'bold 150px Georgia, "Times New Roman", serif';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.lineWidth = 12;
+  g.lineJoin = 'round';
+  if (look.uniformStyle === 'panels') {
+    g.lineWidth = 22; g.strokeStyle = '#ffffff'; g.strokeText(look.letter || '', front, ly);
+  }
+  g.lineWidth = 10;
   g.strokeStyle = '#000000';
-  g.strokeText(look.letter || '', front, 300);
+  g.strokeText(look.letter || '', front, ly);
   g.fillStyle = look.trim;
-  g.fillText(look.letter || '', front, 300);
+  g.fillText(look.letter || '', front, ly);
+
+  if (look.arrow) {
+    // arrow through the letter: fletching low-left, head low-right
+    g.save();
+    g.translate(front, ly + 70);
+    g.rotate(0.55);
+    const shaft = (w, col) => { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(-95, 0); g.lineTo(80, 0); g.stroke(); };
+    shaft(14, '#ffffff'); shaft(7, look.trim);
+    const headShape = () => { g.beginPath(); g.moveTo(108, 0); g.lineTo(76, -16); g.lineTo(76, 16); g.closePath(); };
+    headShape(); g.lineWidth = 6; g.strokeStyle = '#ffffff'; g.stroke(); g.fillStyle = look.trim; g.fill();
+    for (const s of [-1, 1]) {
+      g.strokeStyle = '#ffffff'; g.lineWidth = 9;
+      g.beginPath(); g.moveTo(-95, 0); g.lineTo(-118, s * 18); g.stroke();
+      g.beginPath(); g.moveTo(-80, 0); g.lineTo(-103, s * 18); g.stroke();
+      g.strokeStyle = look.trim; g.lineWidth = 4;
+      g.beginPath(); g.moveTo(-95, 0); g.lineTo(-118, s * 18); g.stroke();
+      g.beginPath(); g.moveTo(-80, 0); g.lineTo(-103, s * 18); g.stroke();
+    }
+    g.restore();
+  }
   return tex(c);
 }
 
@@ -79,8 +126,15 @@ function skirtTexture(look) {
   g.fillStyle = look.uniform;
   g.fillRect(0, 0, 512, 256);
   g.fillStyle = look.trim;
-  g.fillRect(0, 256 - 34, 512, 26);
-  g.fillRect(0, 256 - 72, 512, 18);
+  if (look.uniformStyle === 'panels') {
+    // gold side slits (u = 0 and 0.5 are the sides)
+    for (const x of [0, 256, 512]) {
+      g.beginPath(); g.moveTo(x - 4, 0); g.lineTo(x + 4, 0); g.lineTo(x + 14, 256); g.lineTo(x - 14, 256); g.closePath(); g.fill();
+    }
+  } else {
+    g.fillRect(0, 256 - 34, 512, 26);
+    g.fillRect(0, 256 - 72, 512, 18);
+  }
   return tex(c);
 }
 
@@ -128,6 +182,50 @@ function bootFootGeometry() {
   const geo = new THREE.ExtrudeGeometry(s, { depth: 0.07, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.012, bevelSegments: 3, curveSegments: 10 });
   geo.translate(0, 0, -0.035);
   return geo;
+}
+
+function sneakerGeometry() {
+  const s = new THREE.Shape();
+  s.moveTo(-0.055, -0.005);
+  s.lineTo(-0.062, -0.06);
+  s.quadraticCurveTo(-0.062, -0.075, -0.045, -0.075);
+  s.lineTo(0.13, -0.075);
+  s.quadraticCurveTo(0.175, -0.072, 0.172, -0.045); // round toe
+  s.quadraticCurveTo(0.165, -0.025, 0.11, -0.022);
+  s.quadraticCurveTo(0.05, -0.012, 0.035, 0.002);
+  s.lineTo(-0.055, -0.005);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.074, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.014, bevelSegments: 3, curveSegments: 10 });
+  geo.translate(0, 0, -0.037);
+  return geo;
+}
+
+// Metallic shredded pom-pom: one instanced draw call of radiating strips.
+function pomPom(color) {
+  const n = 150;
+  const geo = new THREE.PlaneGeometry(0.016, 0.13);
+  geo.translate(0, 0.065, 0);
+  const mat = new THREE.MeshStandardMaterial({
+    color: '#ffffff', metalness: 0.55, roughness: 0.28, side: THREE.DoubleSide,
+    emissive: new THREE.Color(color).multiplyScalar(0.22),
+  });
+  const mesh = new THREE.InstancedMesh(geo, mat, n);
+  const up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3();
+  const q = new THREE.Quaternion(), tw = new THREE.Quaternion(), m = new THREE.Matrix4();
+  const base = new THREE.Color(color), col = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    // Fibonacci sphere directions with a little jitter
+    const y = 1 - (i + 0.5) * 2 / n, r = Math.sqrt(1 - y * y), th = i * 2.399963;
+    dir.set(Math.cos(th) * r + (Math.random() - 0.5) * 0.2, y, Math.sin(th) * r + (Math.random() - 0.5) * 0.2).normalize();
+    q.setFromUnitVectors(up, dir);
+    tw.setFromAxisAngle(dir, Math.random() * Math.PI);
+    q.premultiply(tw);
+    const len = 0.75 + Math.random() * 0.45;
+    m.compose(new THREE.Vector3(), q, new THREE.Vector3(1, len, 1));
+    mesh.setMatrixAt(i, m);
+    mesh.setColorAt(i, col.copy(base).multiplyScalar(0.75 + Math.random() * 0.5));
+  }
+  mesh.castShadow = false;
+  return mesh;
 }
 
 export class Gymnast {
@@ -191,10 +289,11 @@ export class Gymnast {
     pelvis.add(shorts);
 
     const skirt = mk('skirt');
-    const sg = new THREE.CylinderGeometry(0.096, 0.17, 0.25, 48, 1, true);
+    const pleated = L.uniformStyle !== 'panels';
+    const sg = new THREE.CylinderGeometry(0.096, pleated ? 0.17 : 0.15, pleated ? 0.25 : 0.23, 48, 1, true);
     // pleats: zig-zag the hem
     const pos = sg.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
+    for (let i = 0; pleated && i < pos.count; i++) {
       const y = pos.getY(i);
       if (y < 0) {
         const a = Math.atan2(pos.getZ(i), pos.getX(i));
@@ -204,7 +303,7 @@ export class Gymnast {
       }
     }
     sg.computeVertexNormals();
-    sg.translate(0, -0.125, 0);
+    sg.translate(0, pleated ? -0.125 : -0.115, 0);
     const skirtMesh = new THREE.Mesh(sg, std({ map: skirtTexture(L), side: THREE.DoubleSide, roughness: 0.75 }));
     skirtMesh.scale.z = 1.3;
     skirt.add(skirtMesh);
@@ -213,7 +312,10 @@ export class Gymnast {
     const thigh = mk('thigh');
     const shin = mk('shin');
     const foot = mk('foot');
-    const footGeo = bootFootGeometry();
+    const sneakers = L.shoes === 'sneakers';
+    const footGeo = sneakers ? sneakerGeometry() : bootFootGeometry();
+    const sock = std({ color: '#fbfbf8', roughness: 0.9 });
+    const sole = std({ color: '#d9d6cf', roughness: 0.8 });
     for (const s of [-1, 1]) {
       const z = s * LEG_Z;
       const t = limb(0.385, 0.066, 0.047, skin);
@@ -223,30 +325,55 @@ export class Gymnast {
       const knee = new THREE.Mesh(new THREE.SphereGeometry(0.047, 16, 12), skin);
       knee.position.z = z;
       shin.add(knee);
-      const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.047, 0.05, 0.07, 16), skin);
-      calf.position.set(0, -0.04, z);
-      shin.add(calf);
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.047, 0.32, 20, 1, true), boot);
-      shaft.position.set(0, -0.225, z);
-      shin.add(shaft);
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.064, 0.006, 6, 24), bootSolid);
-      rim.rotation.x = Math.PI / 2;
-      rim.position.set(0, -0.066, z);
-      shin.add(rim);
-      const inner = new THREE.Mesh(new THREE.CircleGeometry(0.062, 20), std({ color: '#6b6359' }));
-      inner.rotation.x = -Math.PI / 2;
-      inner.position.set(0, -0.08, z);
-      shin.add(inner);
+      if (sneakers) {
+        // bare calf down to an ankle sock
+        const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.047, 0.036, 0.33, 16), skin);
+        calf.position.set(0, -0.17, z);
+        shin.add(calf);
+        const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.041, 0.043, 0.06, 16), sock);
+        cuff.position.set(0, -0.35, z);
+        shin.add(cuff);
+      } else {
+        const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.047, 0.05, 0.07, 16), skin);
+        calf.position.set(0, -0.04, z);
+        shin.add(calf);
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.047, 0.32, 20, 1, true), boot);
+        shaft.position.set(0, -0.225, z);
+        shin.add(shaft);
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.064, 0.006, 6, 24), bootSolid);
+        rim.rotation.x = Math.PI / 2;
+        rim.position.set(0, -0.066, z);
+        shin.add(rim);
+        const inner = new THREE.Mesh(new THREE.CircleGeometry(0.062, 20), std({ color: '#6b6359' }));
+        inner.rotation.x = -Math.PI / 2;
+        inner.position.set(0, -0.08, z);
+        shin.add(inner);
+      }
 
       const f = new THREE.Mesh(footGeo, bootSolid);
       f.position.z = z;
       foot.add(f);
-      const ankle = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 10), bootSolid);
-      ankle.position.set(0, -0.01, z);
-      foot.add(ankle);
-      const h = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.028, 0.06), heel);
-      h.position.set(-0.035, -0.08, z);
-      foot.add(h);
+      if (sneakers) {
+        const ankle = new THREE.Mesh(new THREE.SphereGeometry(0.044, 14, 10), sock);
+        ankle.position.set(-0.005, -0.012, z);
+        foot.add(ankle);
+        const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.235, 0.014, 0.092), sole);
+        s2.position.set(0.055, -0.085, z);
+        foot.add(s2);
+        for (let k = 0; k < 4; k++) {
+          const lace = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.004, 0.05), sole);
+          lace.position.set(0.03 + k * 0.022, -0.011 - k * 0.0055, z);
+          lace.rotation.z = -0.3;
+          foot.add(lace);
+        }
+      } else {
+        const ankle = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 10), bootSolid);
+        ankle.position.set(0, -0.01, z);
+        foot.add(ankle);
+        const h = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.028, 0.06), heel);
+        h.position.set(-0.035, -0.08, z);
+        foot.add(h);
+      }
     }
 
     // Arms
@@ -264,7 +391,11 @@ export class Gymnast {
       hand.scale.set(0.024, 0.05, 0.032);
       hand.position.set(0, -0.27, z);
       fore.add(hand);
-      if (s === 1) {
+      if (L.poms) {
+        const pp = pomPom(L.trim);
+        pp.position.set(0, -0.29, z + s * 0.02);
+        fore.add(pp);
+      } else if (s === 1) {
         const band = new THREE.Mesh(new THREE.TorusGeometry(0.031, 0.009, 8, 18), scrunchie);
         band.rotation.x = Math.PI / 2;
         band.position.set(0, -0.2, z);
@@ -283,7 +414,15 @@ export class Gymnast {
       o.receiveShadow = r > 0.03;
     });
 
-    this.braids = new Braids(this.scene, L);
+    // Body size: every part scales with the physics body; younger kids get a
+    // slightly larger head for their size.
+    this.s = L.scale ?? 1;
+    this.headScale = 1 + Math.max(0, 1 - this.s) * 0.4;
+    for (const [name, g] of Object.entries(this.groups)) {
+      g.scale.setScalar(this.s * (name === 'head' ? this.headScale : 1));
+    }
+
+    this.braids = new Braids(this.scene, L, this.s * this.headScale);
   }
 
   // pose: { name: {x, y, a} } from Ragdoll.pose()
@@ -298,12 +437,13 @@ export class Gymnast {
     const pv = pose.pelvis;
     const sk = this.groups.skirt;
     const c = Math.cos(pv.a), s = Math.sin(pv.a);
-    sk.position.set(pv.x - s * 0.13, pv.y + c * 0.13, 0);
+    const w = 0.13 * this.s;
+    sk.position.set(pv.x - s * w, pv.y + c * w, 0);
     sk.rotation.set(0, 0, pv.a + 0.32 * hipAngle);
 
     const h = pose.head;
     const torso = pose.torso;
-    this.braids.update(dt, h, torso);
+    this.braids.update(dt, h, torso, this.s);
   }
 
   get position() { return this.groups.pelvis.position; }

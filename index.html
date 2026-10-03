@@ -18,7 +18,9 @@
   <header id="hud">
     <div class="brand">
       <div class="logo">Flip <span>Flop</span></div>
-      <div class="sub">cheer edition</div>
+      <button id="btnChar" class="charchip" aria-label="Change cheerleader">
+        <span class="dot"></span><span id="charName">A'myiah</span><span class="caret">▾</span>
+      </button>
     </div>
     <div class="stats">
       <div class="stat"><b id="score">0</b><small>score</small></div>
@@ -71,6 +73,12 @@
       </div>
       <div class="sheet-body">
         <p class="lead">Like QWOP — but tumbling. Each button moves one part of her body. Land on your feet, or it's a <b>FLOP!</b></p>
+
+        <h2 class="first">Who's tumbling?</h2>
+        <div class="picker" role="group" aria-label="Choose your cheerleader">
+          <button class="charcard" data-char="amyiah" aria-pressed="true"><span class="avatar"></span><b>A'myiah</b><small>box braids · boots</small></button>
+          <button class="charcard" data-char="lili" aria-pressed="false"><span class="avatar"></span><b>Lili</b><small>curls · bow · poms</small></button>
+        </div>
 
         <div class="moves">
           <div class="move"><span class="cap">Q</span><div><b>Tuck</b><small>knees to chest</small></div></div>
@@ -132,6 +140,11 @@
         <button class="close" data-close aria-label="Close">✕</button>
       </div>
       <div class="sheet-body">
+        <div class="picker" role="group" aria-label="Choose your cheerleader">
+          <button class="charcard" data-char="amyiah" aria-pressed="true"><span class="avatar"></span><b>A'myiah</b><small>box braids · boots</small></button>
+          <button class="charcard" data-char="lili" aria-pressed="false"><span class="avatar"></span><b>Lili</b><small>curls · bow · poms</small></button>
+        </div>
+
         <label class="row">Floor
           <select id="optMode">
             <option value="spring">Spring floor (easier)</option>
@@ -146,15 +159,42 @@
             <option value="low">Low</option>
           </select>
         </label>
+        <label class="row">Height <span class="rangewrap"><input type="range" id="optHeight" min="0.72" max="1.08" step="0.01" /><output id="heightLabel">4'11"</output></span></label>
+        <h2>Uniform</h2>
+        <label class="row">Style
+          <select id="optUniformStyle">
+            <option value="stripes">Striped V-neck, pleated skirt</option>
+            <option value="panels">Gold V &amp; side panels</option>
+          </select>
+        </label>
         <label class="row">Jersey letter <input id="optLetter" maxlength="2" autocomplete="off" /></label>
-        <h2>Look</h2>
+        <label class="row">Team name <input id="optTeam" class="wide" maxlength="8" autocomplete="off" placeholder="TIGERS" /></label>
+        <h2>Hair &amp; extras</h2>
+        <label class="row">Hair
+          <select id="optHairStyle">
+            <option value="braids">Box braids</option>
+            <option value="curls">Long curls</option>
+          </select>
+        </label>
+        <label class="row">Shoes
+          <select id="optShoes">
+            <option value="boots">Western boots</option>
+            <option value="sneakers">Cheer sneakers</option>
+          </select>
+        </label>
+        <div class="toggles">
+          <label><input type="checkbox" id="optBow" /><span>Cheer bow</span></label>
+          <label><input type="checkbox" id="optPoms" /><span>Pom-poms</span></label>
+          <label><input type="checkbox" id="optBraces" /><span>Braces</span></label>
+        </div>
+        <h2>Colors</h2>
         <div class="swatches">
           <label><input type="color" id="optSkin" />Skin</label>
           <label><input type="color" id="optHair" />Hair</label>
           <label><input type="color" id="optHighlight" />Highlights</label>
           <label><input type="color" id="optUniform" />Uniform</label>
           <label><input type="color" id="optTrim" />Trim</label>
-          <label><input type="color" id="optBoots" />Boots</label>
+          <label><input type="color" id="optBoots" />Shoes</label>
         </div>
       </div>
       <div class="sheet-foot btnrow">

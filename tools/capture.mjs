@@ -107,6 +107,21 @@ await closeup('custom.png', {
   look: { uniform: '#6d1427', trim: '#f4f1ea', letter: 'S', highlight: '#e8c38f', boots: '#b07a4f', hair: '#2a1a10', skin: '#a0673f' },
 }, { pos: [1.15, 1.25, 1.6], at: [0.02, 0.88, 0] });
 
+await closeup('lili.png', { character: 'lili' }, { pos: [1.15, 1.25, 1.6], at: [0.02, 0.88, 0] }); // same framing as A'myiah to show the height difference
+await closeup('lili-face.png', { character: 'lili' }, { pos: [0.48, 1.25, 0.4], at: [0, 1.22, 0] });
+
+// Lili mid back tuck, pom-poms flying
+{
+  const { ctx, page } = await open({ viewport: { width: 1280, height: 720 } }, '?capture', { seenHelp: true, character: 'lili' });
+  await page.waitForFunction(() => window.flipflop_capture);
+  await step(page, '', 36);
+  await step(page, 'o', 12);
+  await step(page, 'pw', 3);
+  await step(page, 'q', 9);
+  await page.screenshot({ path: join(OUT, 'lili-tuck.png') });
+  await ctx.close();
+}
+
 // ---------- 3. phone (portrait) ----------
 const phone = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true };
 {
