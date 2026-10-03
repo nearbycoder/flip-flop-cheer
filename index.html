@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Flip Flop Cheer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <header id="hud">
+    <div class="brand">
+      <div class="logo">Flip <span>Flop</span></div>
+      <div class="sub">cheer edition</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="score">0</b><small>score</small></div>
+      <div class="stat"><b id="best">0</b><small>best</small></div>
+      <div class="stat"><b id="dist">0.0m</b><small>distance</small></div>
+    </div>
+    <div class="tools">
+      <button id="btnSound" class="icon" aria-label="Toggle sound" title="Sound">🔊</button>
+      <button id="btnSettings" class="icon" aria-label="Customize" title="Customize">⚙</button>
+      <button id="btnHelp" class="icon" aria-label="How to play" title="How to play (H)">?</button>
+    </div>
+  </header>
+
+  <div id="combo" aria-live="polite"></div>
+  <div id="toast" aria-live="polite"></div>
+  <div id="padBadge" hidden>🎮 Controller ready</div>
+
+  <div id="controls">
+    <div class="cluster left">
+      <button class="key" data-key="q"><span class="cap">Q</span><span class="lbl">Tuck</span></button>
+      <button class="key" data-key="w"><span class="cap">W</span><span class="lbl">Arch</span></button>
+    </div>
+    <button id="btnRestart" class="restart" aria-label="Restart">↺</button>
+    <div class="cluster right">
+      <button class="key" data-key="o"><span class="cap">O</span><span class="lbl">Bend</span></button>
+      <button class="key" data-key="p"><span class="cap">P</span><span class="lbl">Jump</span></button>
+    </div>
+  </div>
+
+  <div id="flop" class="overlay" hidden>
+    <div class="card flopcard">
+      <div class="flopword">FLOP!</div>
+      <div id="flopWhy"></div>
+      <div class="runstats">
+        <div><b id="runScore">0</b><small>score</small></div>
+        <div><b id="runSkills">0</b><small>skills</small></div>
+        <div><b id="runDist">0m</b><small>distance</small></div>
+      </div>
+      <div id="newBest" hidden>★ New best! ★</div>
+      <button id="btnAgain" class="primary">Try again</button>
+      <div class="hint"><span class="kbd">Space</span> · tap · <span class="kbd">Start</span></div>
+    </div>
+  </div>
+
+  <div id="help" class="overlay" hidden>
+    <div class="card wide">
+      <button class="close" data-close aria-label="Close">✕</button>
+      <h1>Flip <span>Flop</span> Cheer</h1>
+      <p class="lead">Like QWOP — but tumbling. You control her hips, arms and legs. Land skills on your feet; anything else is a <b>FLOP!</b></p>
+      <div class="grid">
+        <div class="move"><span class="cap">Q</span><div><b>Tuck</b><br />knees to chest, arms to shins</div></div>
+        <div class="move"><span class="cap">W</span><div><b>Arch</b><br />arms overhead, lean back</div></div>
+        <div class="move"><span class="cap">O</span><div><b>Bend</b><br />dip / sit back</div></div>
+        <div class="move"><span class="cap">P</span><div><b>Jump</b><br />snap legs straight</div></div>
+      </div>
+      <h2>Back Tuck</h2>
+      <ol>
+        <li>Hold <span class="cap s">O</span> to dip.</li>
+        <li>Press <span class="cap s">P</span>+<span class="cap s">W</span> together to jump &amp; throw your arms.</li>
+        <li>Switch to <span class="cap s">Q</span> to tuck… then <b>let go</b> to open up and land.</li>
+      </ol>
+      <h2>Back Handspring</h2>
+      <ol>
+        <li>Hold <span class="cap s">O</span> to sit, then add <span class="cap s">W</span> and lean back (about half a second).</li>
+        <li>Press <span class="cap s">P</span>+<span class="cap s">W</span> to jump back onto your hands.</li>
+        <li>The moment your hands touch, tap <span class="cap s">Q</span> to snap down. Let go to land.</li>
+      </ol>
+      <h2>Combos</h2>
+      <p>Land and go again quickly to chain skills — each one in a combo multiplies its points. Stand still to <b>stick it</b> and bank the combo (+50).</p>
+      <div class="ctrlrow">
+        <div><b>Phone:</b> hold the big buttons — slide your thumb between Q↔W or O↔P.</div>
+        <div><b>Controller:</b> LB/X = Q · LT/Y = W · RB/A = O · RT/B = P · Start = restart</div>
+        <div><b>Keyboard:</b> Q W O P · R or Space = restart · H = help</div>
+      </div>
+      <button class="primary" data-close>Let's cheer!</button>
+    </div>
+  </div>
+
+  <div id="settings" class="overlay" hidden>
+    <div class="card">
+      <button class="close" data-close aria-label="Close">✕</button>
+      <h1>Customize</h1>
+      <label class="row">Floor
+        <select id="optMode">
+          <option value="spring">Spring floor (easier)</option>
+          <option value="gym">Gym floor (expert)</option>
+        </select>
+      </label>
+      <label class="row">Jersey letter <input id="optLetter" maxlength="2" /></label>
+      <div class="swatches">
+        <label>Skin <input type="color" id="optSkin" /></label>
+        <label>Hair <input type="color" id="optHair" /></label>
+        <label>Highlights <input type="color" id="optHighlight" /></label>
+        <label>Uniform <input type="color" id="optUniform" /></label>
+        <label>Trim <input type="color" id="optTrim" /></label>
+        <label>Boots <input type="color" id="optBoots" /></label>
+      </div>
+      <div class="btnrow">
+        <button id="btnResetLook">Reset look</button>
+        <button class="primary" data-close>Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
